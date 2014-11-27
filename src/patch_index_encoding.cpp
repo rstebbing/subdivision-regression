@@ -1,4 +1,4 @@
-// patch_index_coder.cpp
+// patch_index_encoding.cpp
 
 // Try not to vomit ...
 
