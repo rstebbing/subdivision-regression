@@ -3,7 +3,6 @@
 // Try not to vomit ...
 
 // Includes
-
 #include <stdint.h>
 #include <cassert>
 
@@ -29,12 +28,13 @@ static void SetDoubleToFixedPointInUnitInterval(double* d) {
   *ull |= 0x0010000000000000;
 
   // Set to fixed-point representation.
-  while (e++ <= 1022)
+  while (e++ <= 1022) {
     *ull >>= 1;
+  }
 }
 
-// SetDoubleFromFixedPointInUintInterval
-static void SetDoubleFromFixedPointInUintInterval(double* d) {
+// SetDoubleFromFixedPointInUnitInterval
+static void SetDoubleFromFixedPointInUnitInterval(double* d) {
   uint64_t* ull = (uint64_t*)d;
   // Clear sign bit and reset exponent.
   *ull &= 0x000FFFFFFFFFFFFF;
@@ -47,8 +47,9 @@ static void SetDoubleFromFixedPointInUintInterval(double* d) {
   }
 
   *ull &= 0x000FFFFFFFFFFFFF;
-  if (e >= (1023 - 52))
+  if (e >= (1023 - 52)) {
     *ull |= e << 52;
+  }
 }
 
 // EncodePatchIndexInPlace
@@ -68,9 +69,8 @@ int DecodePatchIndexInPlace(double* u) {
   uint32_t hi = (*(uint64_t*)&u[1] >> 52) & 0xFFF;
   int patch_index = (hi << 12) | lo;
 
-  SetDoubleFromFixedPointInUintInterval(&u[0]);
-  SetDoubleFromFixedPointInUintInterval(&u[1]);
+  SetDoubleFromFixedPointInUnitInterval(&u[0]);
+  SetDoubleFromFixedPointInUnitInterval(&u[1]);
 
   return patch_index;
 }
-
