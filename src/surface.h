@@ -1,8 +1,11 @@
+// surface.h
 #ifndef SURFACE_H
 #define SURFACE_H
 
+// Includes
 #include <vector>
 
+// Surface
 struct Surface {
   virtual void M(double* m, const int p, const double* u, const double* const* X) const = 0;
   virtual void Mu(double* mu, const int p, const double* u, const double* const* X) const = 0;
@@ -19,4 +22,4 @@ struct Surface {
   virtual const std::vector<int>& adjacent_patch_indices(const int p) const = 0;
 };
 
-#endif
+#endif // SURFACE_H
