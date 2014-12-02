@@ -44,33 +44,21 @@ bool SurfaceCostFunction::Evaluate(const double* const* x,
     return EvaluateImpl(p, u, Xp.get(), e, nullptr);
   }
 
-  // Otherwise, construct Jacobian data, but write Jacobian for `u`
-  // directly into the output Jacobian.
-  ceres::internal::FixedArray<double> Jp_data(3 * 3 * num_patch_vertices);
-  ceres::internal::FixedArray<double*> Jp(1 + num_patch_vertices);
-  Jp[0] = J[0];
-  for (int i = 0; i < num_patch_vertices; ++i) {
-    Jp[i + 1] = Jp_data.get() + num_residuals() * 3 * i;
-  }
-
-  if (!EvaluateImpl(p, u, Xp.get(), e, Jp.get())) {
-    return false;
-  }
-
-  // Copy the relevant entries in the output.
+  // Set Jacobians for *all* vertices (initially) to zero.
   for (int i = 0; i < surface_->number_of_vertices(); ++i) {
     if (J[1 + i] != nullptr) {
       std::fill(J[1 + i], J[1 + i] + num_residuals() * 3, 0.0);
     }
   }
 
+  // Construct `Jp`; the array of poitns to the Jacobians.
+  ceres::internal::FixedArray<double*> Jp(1 + num_patch_vertices);
+  Jp[0] = J[0];
   for (int i = 0; i < num_patch_vertices; ++i) {
-    if (J[1 + patch_vertex_indices[i]] != nullptr) {
-      std::copy(Jp[i + 1], Jp[i + 1] + num_residuals() * 3,
-                J[1 + patch_vertex_indices[i]]);
-    }
+    Jp[i + 1] = J[1 + patch_vertex_indices[i]];
   }
-  return true;
+
+  return EvaluateImpl(p, u, Xp.get(), e, Jp.get());
 }
 
 // SurfacePositionCostFunction
