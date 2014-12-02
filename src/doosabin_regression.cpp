@@ -88,6 +88,46 @@ class DooSabinSurface : public Surface {
   const Surface* surface_;
 };
 
+// PositionErrorFunctor
+class PositionErrorFunctor {
+ public:
+  template <typename M>
+  PositionErrorFunctor(const M& m0, const double& sqrt_w = 1.0)
+    : m0_(m0), sqrt_w_(sqrt_w)
+  {}
+
+  template <typename T>
+  bool operator()(const T* m, T* e) const {
+    e[0] = T(sqrt_w_) * (T(m0_[0]) - m[0]);
+    e[1] = T(sqrt_w_) * (T(m0_[1]) - m[1]);
+    e[2] = T(sqrt_w_) * (T(m0_[2]) - m[2]);
+    return true;
+  }
+
+ private:
+  Eigen::Vector3d m0_;
+  const double sqrt_w_;
+};
+
+// PairwiseErrorFunctor
+class PairwiseErrorFunctor {
+ public:
+  PairwiseErrorFunctor(const double& sqrt_w = 1.0)
+    : sqrt_w_(sqrt_w)
+  {}
+
+  template <typename T>
+  bool operator()(const T* x0, const T* x1, T* e) const {
+    e[0] = T(sqrt_w_) * (x1[0] - x0[0]);
+    e[1] = T(sqrt_w_) * (x1[1] - x0[1]);
+    e[2] = T(sqrt_w_) * (x1[2] - x0[2]);
+    return true;
+  }
+
+ private:
+  const double sqrt_w_;
+};
+
 // LoadProblemFromFile
 bool LoadProblemFromFile(const std::string& input_path,
                          Eigen::MatrixXd* Y,
@@ -169,46 +209,6 @@ bool UpdateProblemToFile(const std::string& input_path,
 
   return true;
 }
-
-// PositionErrorFunctor
-class PositionErrorFunctor {
- public:
-  template <typename M>
-  PositionErrorFunctor(const M& m0, const double& sqrt_w = 1.0)
-    : m0_(m0), sqrt_w_(sqrt_w)
-  {}
-
-  template <typename T>
-  bool operator()(const T* m, T* e) const {
-    e[0] = T(sqrt_w_) * (T(m0_[0]) - m[0]);
-    e[1] = T(sqrt_w_) * (T(m0_[1]) - m[1]);
-    e[2] = T(sqrt_w_) * (T(m0_[2]) - m[2]);
-    return true;
-  }
-
- private:
-  Eigen::Vector3d m0_;
-  const double sqrt_w_;
-};
-
-// PairwiseErrorFunctor
-class PairwiseErrorFunctor {
- public:
-  PairwiseErrorFunctor(const double& sqrt_w = 1.0)
-    : sqrt_w_(sqrt_w)
-  {}
-
-  template <typename T>
-  bool operator()(const T* x0, const T* x1, T* e) const {
-    e[0] = T(sqrt_w_) * (x1[0] - x0[0]);
-    e[1] = T(sqrt_w_) * (x1[1] - x0[1]);
-    e[2] = T(sqrt_w_) * (x1[2] - x0[2]);
-    return true;
-  }
-
- private:
-  const double sqrt_w_;
-};
 
 // main
 DEFINE_int32(max_num_iterations, 1000, "Maximum number of iterations.");
