@@ -1,4 +1,4 @@
-# generate_example.py
+# generate_example_doosabin_regression_problem.py
 
 # Imports
 import argparse
