@@ -8,6 +8,37 @@
 #include "patch_index_encoding.h"
 #include "surface.h"
 
+// SurfaceCostFunction
+class SurfaceCostFunction : public ceres::CostFunction {
+ public:
+  SurfaceCostFunction(const Surface* surface);
+
+  virtual bool Evaluate(const double* const* x, double* e, double** J) const;
+
+ protected:
+  virtual bool EvaluateImpl(const int p,
+                            const double* u,
+                            const double* const* X,
+                            double* r,
+                            double** J) const = 0;
+
+protected:
+  const Surface* surface_;
+};
+
+// SurfacePositionCostFunction
+class SurfacePositionCostFunction : public SurfaceCostFunction {
+ public:
+  SurfacePositionCostFunction(const Surface* surface);
+
+ protected:
+  virtual bool EvaluateImpl(const int p,
+                            const double* u,
+                            const double* const* X,
+                            double* r,
+                            double** J) const;
+};
+
 // PreimageLocalParameterisation
 template <typename Walker, typename TX>
 class PreimageLocalParameterisation :
@@ -40,37 +71,6 @@ class PreimageLocalParameterisation :
  private:
   const Walker* walker_;
   const TX* X_;
-};
-
-// SurfaceCostFunction
-class SurfaceCostFunction : public ceres::CostFunction {
- public:
-  SurfaceCostFunction(const Surface* surface);
-
-  virtual bool Evaluate(const double* const* x, double* e, double** J) const;
-
- protected:
-  virtual bool EvaluateImpl(const int p,
-                            const double* u,
-                            const double* const* X,
-                            double* r,
-                            double** J) const = 0;
-
-protected:
-  const Surface* surface_;
-};
-
-// SurfacePositionCostFunction
-class SurfacePositionCostFunction : public SurfaceCostFunction {
- public:
-  SurfacePositionCostFunction(const Surface* surface);
-
- protected:
-  virtual bool EvaluateImpl(const int p,
-                            const double* u,
-                            const double* const* X,
-                            double* r,
-                            double** J) const;
 };
 
 #endif // CERES_SURFACE_H
