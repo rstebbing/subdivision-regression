@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
 
     auto position_error = new ceres_utility::GeneralCostFunctionComposition(
       new ceres::AutoDiffCostFunction<PositionErrorFunctor, 3, 3>(
-        new PositionErrorFunctor(Y.col(i))));
+        new PositionErrorFunctor(Y.col(i), 1.0 / sqrt(num_data_points))));
     position_error->AddInputCostFunction(
       new SurfacePositionCostFunction(&doosabin_surface),
       parameter_blocks);
@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
     }
 
     problem.AddResidualBlock(new ceres::AutoDiffCostFunction<PairwiseErrorFunctor, 3, 3, 3>(
-      new PairwiseErrorFunctor(sqrt(num_data_points * lambda))),
+      new PairwiseErrorFunctor(sqrt(lambda))),
       nullptr,
       X.data() + 3 * i,
       X.data() + 3 * j);
