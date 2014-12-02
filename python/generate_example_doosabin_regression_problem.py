@@ -21,6 +21,7 @@ def main():
     parser.add_argument('num_data_points', type=int)
     parser.add_argument('output_path')
     parser.add_argument('--radius-std-dev', type=float, default=0.05)
+    parser.add_argument('--hemisphere', default=False, action='store_true')
     parser.add_argument('--num-subdivisions', type=int, default=0)
     parser.add_argument('--initialisation-sample-density', type=int,
                         default=16)
@@ -33,6 +34,8 @@ def main():
     n[n <= 0.0] = 1.0
     r = (1.0 + args.radius_std_dev * np.random.randn(args.num_data_points))
     Y *= (r / n)[:, np.newaxis]
+    if args.hemisphere:
+        Y[Y[:, 2] < 0.0, 2] *= -1.0
 
     # Initial mesh and geometry is the cube from:
     # subdivision/doosabin/examples/visualise_doosabin_subdivision.py.
