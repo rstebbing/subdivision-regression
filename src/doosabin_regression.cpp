@@ -362,9 +362,11 @@ int main(int argc, char** argv) {
     p[i] = DecodePatchIndexInPlace(U.data() + 2 * i);
   }
 
+  // Save.
   if (!UpdateProblemToFile(argv[1], argv[3], X, p, U)) {
     return -1;
   }
+  std::cout << "Output: " << argv[3] << std::endl;
 
   return 0;
 }
