@@ -14,6 +14,8 @@ struct Surface {
   virtual void Muv(double* muv, const int p, const double* u, const double* const* X) const = 0;
   virtual void Mvv(double* mvv, const int p, const double* u, const double* const* X) const = 0;
   virtual void Mx(double* mx, const int p, const double* u) const = 0;
+  virtual void Mux(double* mux, const int p, const double* u) const = 0;
+  virtual void Mvx(double* mvx, const int p, const double* u) const = 0;
 
   virtual int number_of_vertices() const = 0;
   virtual int number_of_faces() const = 0;
