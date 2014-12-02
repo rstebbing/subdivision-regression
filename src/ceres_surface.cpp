@@ -84,7 +84,8 @@ bool SurfacePositionCostFunction::EvaluateImpl(const int p,
       J[0][4] = Ju[2]; J[0][5] = Jv[2];
     }
 
-    const int num_patch_vertices = surface_->patch_vertex_indices(p).size();
+    const int num_patch_vertices = static_cast<int>(
+      patch_vertex_indices.size());
     ceres::internal::FixedArray<double> Mx(3 * 3 * num_patch_vertices);
     double* Mx_data = Mx.begin();
     surface_->Mx(Mx_data, p, u);
