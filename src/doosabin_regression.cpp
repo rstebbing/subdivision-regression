@@ -19,8 +19,8 @@
 
 #include "doosabin.h"
 
-#include "surface.h"
 #include "ceres_surface.h"
+#include "surface.h"
 
 #include "doosabin_regression.pb.h"
 
@@ -225,8 +225,10 @@ DEFINE_double(min_trust_region_radius, 1e-9,
   "Minimizer terminates when the trust region radius becomes smaller than "
   "this value");
 
-DEFINE_int32(num_threads, 1, "Number of threads to use for Jacobian evaluation.");
-DEFINE_int32(num_linear_solver_threads, 1, "Number of threads to use for the linear solver.");
+DEFINE_int32(num_threads, 1,
+  "Number of threads to use for Jacobian evaluation.");
+DEFINE_int32(num_linear_solver_threads, 1,
+  "Number of threads to use for the linear solver.");
 
 int main(int argc, char** argv) {
  GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -252,15 +254,17 @@ int main(int argc, char** argv) {
   // ... and check consistency of dimensions.
   typedef Eigen::DenseIndex Index;
   const Index num_data_points = Y.cols();
+  CHECK_GT(num_data_points, 0);
   CHECK_EQ(num_data_points, p.size());
   CHECK_EQ(num_data_points, U.cols());
 
   doosabin::GeneralMesh T(std::move(raw_face_array));
+  CHECK_GT(T.number_of_faces(), 0);
   doosabin::Surface<double> surface(T);
   DooSabinSurface doosabin_surface(&surface);
   CHECK_EQ(surface.number_of_vertices(), X.cols());
 
-  // Set lambda.
+  // `lambda` is the regularisation weight.
   const double lambda = atof(argv[2]);
 
   // Setup `problem`.
@@ -279,48 +283,54 @@ int main(int argc, char** argv) {
     parameter_blocks.push_back(X.data() + 3 * i);
   }
 
+  std::unique_ptr<ceres::CostFunction> surface_position(
+    new SurfacePositionCostFunction(&doosabin_surface));
+
   for (Index i = 0; i < num_data_points; ++i) {
     parameter_blocks[0] = U.data() + 2 * i;
 
     auto position_error = new ceres_utility::GeneralCostFunctionComposition(
       new ceres::AutoDiffCostFunction<PositionErrorFunctor, 3, 3>(
         new PositionErrorFunctor(Y.col(i), 1.0 / sqrt(num_data_points))));
-    position_error->AddInputCostFunction(
-      new SurfacePositionCostFunction(&doosabin_surface),
-      parameter_blocks);
+    position_error->AddInputCostFunction(surface_position.get(),
+                                         parameter_blocks,
+                                         false);
     position_error->Finalise();
 
     problem.AddResidualBlock(position_error, nullptr, parameter_blocks);
   }
 
   // Add regularisation residuals.
-  std::set<std::pair<int, int>> edges;
-  for (auto& half_edge : T.iterate_half_edges()) {
-    int i = half_edge.first, j = half_edge.second;
-    if (i > j) {
-      std::swap(i, j);
-    }
-    auto full_edge = std::make_pair(i, j);
-    if (edges.count(full_edge)) {
-      continue;
-    }
+  // Note: `problem` takes ownership of `pairwise_error`.
+  auto pairwise_error =
+    new ceres::AutoDiffCostFunction<PairwiseErrorFunctor, 3, 3, 3>(
+      new PairwiseErrorFunctor(sqrt(lambda)));
 
-    problem.AddResidualBlock(new ceres::AutoDiffCostFunction<PairwiseErrorFunctor, 3, 3, 3>(
-      new PairwiseErrorFunctor(sqrt(lambda))),
-      nullptr,
-      X.data() + 3 * i,
-      X.data() + 3 * j);
-
-    edges.insert(full_edge);
+  std::set<std::pair<int, int>> full_edges;
+  for (std::pair<int, int> e : T.iterate_half_edges()) {
+    if (e.first > e.second) {
+      std::swap(e.first, e.second);
+    }
+    if (!full_edges.count(e)) {
+      problem.AddResidualBlock(pairwise_error,
+                               nullptr,
+                               X.data() + 3 * e.first,
+                               X.data() + 3 * e.second);
+      full_edges.insert(e);
+    }
   }
 
+  // Set preimage parameterisations so that they are updated using
+  // `doosabin::SurfaceWalker<double>` and NOT Euclidean addition.
+  // Note: `problem` takes ownership of `local_parameterisation`.
   typedef doosabin::SurfaceWalker<double> DooSabinWalker;
   DooSabinWalker walker(&surface);
+  auto local_parameterisation =
+    new PreimageLocalParameterisation<DooSabinWalker, Eigen::MatrixXd>(
+      &walker, &X);
+
   for (Index i = 0; i < num_data_points; ++i) {
-    problem.SetParameterization(
-      U.data() + 2 * i,
-      new PreimageLocalParameterisation<DooSabinWalker, Eigen::MatrixXd>(
-        &walker, &X));
+    problem.SetParameterization(U.data() + 2 * i, local_parameterisation);
   }
 
   // Initialise the solver options.
