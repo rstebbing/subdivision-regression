@@ -50,14 +50,19 @@ class DooSabinSurface : public Surface {
   EVALUATE(Mvv);
   #undef EVALUATE
 
-  virtual void Mx(double* r, const int p, const double* u) const {
-    const Eigen::Map<const Eigen::Vector2d> _u(u);
-    // `X` is only used by `surface_` to infer the geometry dimensions.
-    Eigen::Matrix<double, 3, 0> X;
-    Eigen::Map<Eigen::VectorXd> _r(
-      r, 3 * 3 * surface_->patch_vertex_indices(p).size());
-    surface_->Mx(p, _u, X, &_r);
+  // `X` is only used by `surface_` to infer the geometry dimensions.
+  #define EVALUATE_X(M) \
+  virtual void M(double* r, const int p, const double* u) const { \
+    const Eigen::Map<const Eigen::Vector2d> _u(u); \
+    const Eigen::Matrix<double, 3, 0> X; \
+    Eigen::Map<Eigen::VectorXd> _r( \
+      r, 3 * 3 * surface_->patch_vertex_indices(p).size()); \
+    surface_->M(p, _u, X, &_r); \
   }
+  EVALUATE_X(Mx);
+  EVALUATE_X(Mux);
+  EVALUATE_X(Mvx);
+  #undef EVALUATE_X
 
   virtual int number_of_vertices() const {
     return surface_->number_of_vertices();
