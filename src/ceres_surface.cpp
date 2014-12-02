@@ -7,29 +7,18 @@
 #include "ceres/internal/fixed_array.h"
 
 // SurfaceCostFunction
-SurfaceCostFunction::SurfaceCostFunction(
-  const Surface* surface,
-  const int D)
-  : surface_(surface),
-    D_(D) {
-  const int kDim = 3;
-
+SurfaceCostFunction::SurfaceCostFunction(const Surface* surface)
+    : surface_(surface) {
   mutable_parameter_block_sizes()->push_back(2);
-  if (D_ > 1)
-    mutable_parameter_block_sizes()->push_back(D_ - 1);
-  for (int i = 0; i < D_; ++i) {
-    for (int j = 0; j < surface_->number_of_vertices(); ++j) {
-      mutable_parameter_block_sizes()->push_back(kDim);
-    }
+  for (int i = 0; i < surface_->number_of_vertices(); ++i) {
+    mutable_parameter_block_sizes()->push_back(3);
   }
 
-  set_num_residuals(kDim);
+  set_num_residuals(3);
 }
 
-bool SurfaceCostFunction::Evaluate(
-  const double* const* x, double* e, double** J) const {
-  const int kDim = 3;
-
+bool SurfaceCostFunction::Evaluate(const double* const* x,
+                                   double* e, double** J) const {
   // `u` and `alpha` are taken from input parameters `x`.
   double u[2] = {x[0][0], x[0][1]};
   const int p = DecodePatchIndexInPlace(u);
@@ -40,123 +29,55 @@ bool SurfaceCostFunction::Evaluate(
   CHECK_GE(u[1], 0.0);
   CHECK_LE(u[1], 1.0);
 
-  const double* alpha = D_ > 1 ? x[1] : nullptr;
-
   // Get the patch vertex indices.
   auto& patch_vertex_indices = surface_->patch_vertex_indices(p);
-  const int num_patch_vertices = (int)patch_vertex_indices.size();
+  const int num_patch_vertices = static_cast<int>(patch_vertex_indices.size());
 
-  // Construct `Xp_data`; the blended patch vertices.
-  ceres::internal::FixedArray<double> Xp_data(num_patch_vertices * kDim);
-
-  const int kXOffset = D_ > 1 ? 2 : 1;
-  for (int i = 0; i < num_patch_vertices; ++i) {
-    for (int j = 0; j < kDim; ++j)
-      Xp_data[kDim * i + j] = x[kXOffset + patch_vertex_indices[i]][j];
-  }
-
-  for (int m = 1; m < D_; ++m) {
-    for (int i = 0; i < num_patch_vertices; ++i) {
-      for (int j = 0; j < kDim; ++j)
-        Xp_data[kDim * i + j] +=
-          alpha[m - 1] * x[kXOffset +
-                           m * surface_->number_of_vertices() +
-                           patch_vertex_indices[i]][j];
-    }
-  }
-
-  // Construct `Xp`; the array of pointers to the blended patch vertices.
+  // Construct `Xp`; the array of pointers to the patch vertices.
   ceres::internal::FixedArray<const double*> Xp(num_patch_vertices);
-  for (int i = 0; i < num_patch_vertices; ++i)
-    Xp[i] = &Xp_data[kDim * i];
+  for (int i = 0; i < num_patch_vertices; ++i) {
+    Xp[i] = x[1 + patch_vertex_indices[i]];
+  }
 
   // Can exit early when no Jacobian is required.
-  if (J == nullptr)
+  if (J == nullptr) {
     return EvaluateImpl(p, u, Xp.get(), e, nullptr);
+  }
 
   // Otherwise, construct Jacobian data, but write Jacobian for `u`
   // directly into the output Jacobian.
-  ceres::internal::FixedArray<double> Jp_data(
-    num_residuals() * kDim * num_patch_vertices);
+  ceres::internal::FixedArray<double> Jp_data(3 * 3 * num_patch_vertices);
   ceres::internal::FixedArray<double*> Jp(1 + num_patch_vertices);
   Jp[0] = J[0];
-  for (int i = 0; i < num_patch_vertices; ++i)
-    Jp[i + 1] = Jp_data.get() + num_residuals() * kDim * i;
+  for (int i = 0; i < num_patch_vertices; ++i) {
+    Jp[i + 1] = Jp_data.get() + num_residuals() * 3 * i;
+  }
 
-  if (!EvaluateImpl(p, u, Xp.get(), e, Jp.get()))
+  if (!EvaluateImpl(p, u, Xp.get(), e, Jp.get())) {
     return false;
-
-  // If single dimension then just copy the relevant entries into
-  // the output.
-  if (D_ == 1) {
-    DCHECK_EQ(kXOffset, 1);
-    for (int i = 0; i < surface_->number_of_vertices(); ++i) {
-      if (J[kXOffset + i] != nullptr) {
-        std::fill(J[kXOffset + i],
-                  J[kXOffset + i] + num_residuals() * kDim,
-                  0.0);
-      }
-    }
-
-    for (int i = 0; i < num_patch_vertices; ++i) {
-      if (J[kXOffset + patch_vertex_indices[i]] == nullptr)
-          continue;
-
-      std::copy(Jp[i + 1],
-                Jp[i + 1] + num_residuals() * kDim,
-                J[kXOffset + patch_vertex_indices[i]]);
-    }
-    return true;
   }
 
-  DCHECK_GE(D_, 2);
-
-  // Apply the chain rule to set Jacobians for `alpha` and `X`.
-  DCHECK_EQ(kXOffset, 2);
-  if (J[1] != nullptr) {
-    for (int m = 0; m < num_residuals(); ++m) {
-      for (int n = 1; n < D_; ++n) {
-        J[1][m * (D_ - 1) + n - 1] = 0.0;
-        for (int i = 0; i < num_patch_vertices; ++i)
-          for (int k = 0; k < kDim; ++k)
-            J[1][m * (D_ - 1) + n - 1] += Jp[i + 1][kDim * m + k] *
-              x[kXOffset + n * surface_->number_of_vertices() +
-                patch_vertex_indices[i]][k];
-      }
+  // Copy the relevant entries in the output.
+  for (int i = 0; i < surface_->number_of_vertices(); ++i) {
+    if (J[1 + i] != nullptr) {
+      std::fill(J[1 + i], J[1 + i] + num_residuals() * 3, 0.0);
     }
   }
 
-  for (int m = 0; m < D_; ++m) {
-    for (int i = 0; i < surface_->number_of_vertices(); ++i) {
-      if (J[kXOffset + m * surface_->number_of_vertices() + i] != nullptr) {
-        std::fill(J[kXOffset + m * surface_->number_of_vertices() + i],
-                  J[kXOffset + m * surface_->number_of_vertices() + i] +
-                    num_residuals() * kDim,
-                  0.0);
-      }
-    }
-
-    const double& a = (m < 1) ? 1.0 : alpha[m - 1];
-
-    for (int i = 0; i < num_patch_vertices; ++i) {
-      for (int j = 0; j < num_residuals(); ++j) {
-        for (int k = 0; k < kDim; ++k) {
-          J[kXOffset + m * surface_->number_of_vertices() +
-            patch_vertex_indices[i]][j * kDim + k] =
-              a * Jp[i + 1][j * kDim + k];
-        }
-      }
+  for (int i = 0; i < num_patch_vertices; ++i) {
+    if (J[1 + patch_vertex_indices[i]] != nullptr) {
+      std::copy(Jp[i + 1], Jp[i + 1] + num_residuals() * 3,
+                J[1 + patch_vertex_indices[i]]);
     }
   }
-
   return true;
 }
 
 // SurfacePositionCostFunction
 SurfacePositionCostFunction::SurfacePositionCostFunction(
-  const Surface* surface,
-  const int D)
-  : SurfaceCostFunction(surface, D) {}
+  const Surface* surface)
+    : SurfaceCostFunction(surface)
+  {}
 
 bool SurfacePositionCostFunction::EvaluateImpl(const int p,
                                                const double* u,

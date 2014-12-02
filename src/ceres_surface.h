@@ -45,9 +45,7 @@ class PreimageLocalParameterisation :
 // SurfaceCostFunction
 class SurfaceCostFunction : public ceres::CostFunction {
  public:
-  SurfaceCostFunction(
-    const Surface* surface,
-    const int D = 1);
+  SurfaceCostFunction(const Surface* surface);
 
   virtual bool Evaluate(const double* const* x, double* e, double** J) const;
 
@@ -60,15 +58,12 @@ class SurfaceCostFunction : public ceres::CostFunction {
 
 protected:
   const Surface* surface_;
-  const int D_;
 };
 
 // SurfacePositionCostFunction
 class SurfacePositionCostFunction : public SurfaceCostFunction {
  public:
-  SurfacePositionCostFunction(
-    const Surface* surface,
-    const int D = 1);
+  SurfacePositionCostFunction(const Surface* surface);
 
  protected:
   virtual bool EvaluateImpl(const int p,
