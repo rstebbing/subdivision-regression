@@ -169,20 +169,21 @@ bool UpdateProblemToFile(const std::string& input_path,
 class PositionErrorFunctor {
  public:
   template <typename M>
-  PositionErrorFunctor(const M& m0)
-    : m0_(m0)
+  PositionErrorFunctor(const M& m0, const double& sqrt_w = 1.0)
+    : m0_(m0), sqrt_w_(sqrt_w)
   {}
 
   template <typename T>
   bool operator()(const T* m, T* e) const {
-    e[0] = T(m0_[0]) - m[0];
-    e[1] = T(m0_[1]) - m[1];
-    e[2] = T(m0_[2]) - m[2];
+    e[0] = T(sqrt_w_) * (T(m0_[0]) - m[0]);
+    e[1] = T(sqrt_w_) * (T(m0_[1]) - m[1]);
+    e[2] = T(sqrt_w_) * (T(m0_[2]) - m[2]);
     return true;
   }
 
  private:
   Eigen::Vector3d m0_;
+  const double sqrt_w_;
 };
 
 // PairwiseErrorFunctor
