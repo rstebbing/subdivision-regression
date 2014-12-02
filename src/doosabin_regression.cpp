@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
 
   doosabin::GeneralMesh T(std::move(raw_face_array));
   doosabin::Surface<double> surface(T);
-  DooSabinSurface ceres_surface(&surface);
+  DooSabinSurface doosabin_surface(&surface);
   CHECK_EQ(surface.number_of_vertices(), X.cols());
 
   // Set lambda.
@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
       new ceres::AutoDiffCostFunction<PositionErrorFunctor, 3, 3>(
         new PositionErrorFunctor(Y.col(i))));
     position_error->AddInputCostFunction(
-      new SurfacePositionCostFunction(&ceres_surface),
+      new SurfacePositionCostFunction(&doosabin_surface),
       parameter_blocks);
     position_error->Finalise();
 
