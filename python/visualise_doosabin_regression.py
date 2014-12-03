@@ -9,7 +9,7 @@ import doosabin
 
 # Requires common/python on `PYTHONPATH`.
 from face_array import raw_face_array_to_sequence
-import protobuf
+import protobuf_ as pb
 import vtk_
 
 from doosabin_regression_pb2 import Problem
@@ -25,11 +25,11 @@ def main():
     with open(args.input_path, 'rb') as fp:
         s.ParseFromString(fp.read())
 
-    Y = protobuf.load_array(s, 'y', 3)
-    T = raw_face_array_to_sequence(protobuf.load_array(s, 't'))
-    X = protobuf.load_array(s, 'x', 3)
-    p = protobuf.load_array(s, 'p')
-    U = protobuf.load_array(s, 'u', 2)
+    Y = pb.load_array(s, 'y', 3)
+    T = raw_face_array_to_sequence(pb.load_array(s, 't'))
+    X = pb.load_array(s, 'x', 3)
+    p = pb.load_array(s, 'p')
+    U = pb.load_array(s, 'u', 2)
 
     surface = doosabin.Surface(T)
     pd, Ud, Td = surface.uniform_parameterisation(args.sample_density)

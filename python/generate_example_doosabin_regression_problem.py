@@ -11,7 +11,7 @@ import doosabin
 
 # Requires common/python on `PYTHONPATH`.
 from face_array import sequence_to_raw_face_array
-import protobuf
+import protobuf_ as pb
 
 from doosabin_regression_pb2 import Problem
 
@@ -72,11 +72,11 @@ def main():
 
     # Output.
     s = Problem()
-    protobuf.append_array(s, 'y', Y)
-    protobuf.append_array(s, 't', sequence_to_raw_face_array(T))
-    protobuf.append_array(s, 'x', X)
-    protobuf.append_array(s, 'p', p)
-    protobuf.append_array(s, 'u', U)
+    pb.append_array(s, 'y', Y)
+    pb.append_array(s, 't', sequence_to_raw_face_array(T))
+    pb.append_array(s, 'x', X)
+    pb.append_array(s, 'p', p)
+    pb.append_array(s, 'u', U)
 
     print 'Output:', args.output_path
     with open(args.output_path, 'wb') as fp:
