@@ -33,36 +33,27 @@ class DooSabinSurface : public Surface {
     : surface_(surface)
   {}
 
-  #define EVALUATE(M) \
+  #define EVALUATE(M, SIZE) \
   virtual void M(double* r, const int p, const double* u, \
                  const double* const* X) const { \
     const Eigen::Map<const Eigen::Vector2d> _u(u); \
     const linalg::MatrixOfColumnPointers<double> _X( \
       X, 3, surface_->patch_vertex_indices(p).size()); \
-    Eigen::Map<Eigen::Vector3d> _r(r); \
+    Eigen::Map<Eigen::VectorXd> _r(r, SIZE); \
     surface_->M(p, _u, _X, &_r); \
   }
-  EVALUATE(M);
-  EVALUATE(Mu);
-  EVALUATE(Mv);
-  EVALUATE(Muu);
-  EVALUATE(Muv);
-  EVALUATE(Mvv);
+  #define SIZE_JACOBIAN_X (3 * 3 * surface_->patch_vertex_indices(p).size())
+  EVALUATE(M, 3);
+  EVALUATE(Mu, 3);
+  EVALUATE(Mv, 3);
+  EVALUATE(Muu, 3);
+  EVALUATE(Muv, 3);
+  EVALUATE(Mvv, 3);
+  EVALUATE(Mx, SIZE_JACOBIAN_X);
+  EVALUATE(Mux, SIZE_JACOBIAN_X);
+  EVALUATE(Mvx, SIZE_JACOBIAN_X);
   #undef EVALUATE
-
-  // `X` is only used by `surface_` to infer the geometry dimensions.
-  #define EVALUATE_X(M) \
-  virtual void M(double* r, const int p, const double* u) const { \
-    const Eigen::Map<const Eigen::Vector2d> _u(u); \
-    const Eigen::Matrix<double, 3, 0> X; \
-    Eigen::Map<Eigen::VectorXd> _r( \
-      r, 3 * 3 * surface_->patch_vertex_indices(p).size()); \
-    surface_->M(p, _u, X, &_r); \
-  }
-  EVALUATE_X(Mx);
-  EVALUATE_X(Mux);
-  EVALUATE_X(Mvx);
-  #undef EVALUATE_X
+  #undef SIZE_JACOBIAN_X
 
   virtual int number_of_vertices() const {
     return surface_->number_of_vertices();
