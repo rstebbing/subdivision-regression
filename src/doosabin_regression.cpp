@@ -154,33 +154,32 @@ bool LoadProblemFromFile(const std::string& input_path,
     return false;
   }
 
-  #define LOAD_MATRIXD(SRC, DST, DIM) { \
-    CHECK(document.HasMember(#SRC)); \
-    auto& v = document[#SRC]; \
+  #define LOAD_MATRIXD(K, DIM) { \
+    CHECK(document.HasMember(#K)); \
+    auto& v = document[#K]; \
     CHECK(v.IsArray()); \
-    DST->resize(DIM, v.Size() / DIM); \
+    K->resize(DIM, v.Size() / DIM); \
     for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
       CHECK(v[i].IsDouble()); \
-      (*DST)(i % DIM, i / DIM) = v[i].GetDouble(); \
+      (*K)(i % DIM, i / DIM) = v[i].GetDouble(); \
     } \
   }
-
-  #define LOAD_VECTORI(SRC, DST) { \
-    CHECK(document.HasMember(#SRC)); \
-    auto& v = document[#SRC]; \
+  #define LOAD_VECTORI(K) { \
+    CHECK(document.HasMember(#K)); \
+    auto& v = document[#K]; \
     CHECK(v.IsArray()); \
-    DST->resize(v.Size()); \
+    K->resize(v.Size()); \
     for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
       CHECK(v[i].IsInt()); \
-      (*DST)[i] = v[i].GetInt(); \
+      (*K)[i] = v[i].GetInt(); \
     } \
   }
 
-  LOAD_MATRIXD(Y, Y, 3);
-  LOAD_VECTORI(raw_face_array, raw_face_array);
-  LOAD_MATRIXD(X, X, 3);
-  LOAD_VECTORI(p, p);
-  LOAD_MATRIXD(U, U, 2);
+  LOAD_MATRIXD(Y, 3);
+  LOAD_VECTORI(raw_face_array);
+  LOAD_MATRIXD(X, 3);
+  LOAD_VECTORI(p);
+  LOAD_MATRIXD(U, 2);
 
   #undef LOAD_MATRIXD
   #undef LOAD_VECTORI
@@ -200,31 +199,33 @@ bool UpdateProblemToFile(const std::string& input_path,
     return false;
   }
 
-  #define SAVE_MATRIXD(SRC, DST) { \
-    CHECK(document.HasMember(#DST)); \
-    auto& v = document[#DST]; \
+  #define SAVE_MATRIXD(K) { \
+    CHECK(document.HasMember(#K)); \
+    auto& v = document[#K]; \
     CHECK(v.IsArray()); \
-    CHECK_EQ(v.Size(), SRC.rows() * SRC.cols()); \
+    CHECK_EQ(v.Size(), K.rows() * K.cols()); \
     for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
       CHECK(v[i].IsDouble()); \
-      v[i] = SRC(i % SRC.rows(), i / SRC.rows()); \
+      v[i] = K(i % K.rows(), i / K.rows()); \
     } \
   }
-
-  #define SAVE_VECTORI(SRC, DST) { \
-    CHECK(document.HasMember(#DST)); \
-    auto& v = document[#DST]; \
+  #define SAVE_VECTORI(K) { \
+    CHECK(document.HasMember(#K)); \
+    auto& v = document[#K]; \
     CHECK(v.IsArray()); \
-    CHECK_EQ(v.Size(), SRC.size()); \
+    CHECK_EQ(v.Size(), K.size()); \
     for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
       CHECK(v[i].IsInt()); \
-      v[i] = SRC[i]; \
+      v[i] = K[i]; \
     } \
   }
 
-  SAVE_MATRIXD(X, X);
-  SAVE_VECTORI(p, p);
-  SAVE_MATRIXD(U, U);
+  SAVE_MATRIXD(X);
+  SAVE_VECTORI(p);
+  SAVE_MATRIXD(U);
+
+  #undef SAVE_MATRIXD
+  #undef SAVE_VECTORI
 
   // Use `fopen` instead of streams for `rapidjson::FileStream`.
   FILE* output_handle = fopen(output_path.c_str(), "wb");
