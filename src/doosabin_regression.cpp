@@ -20,8 +20,8 @@
 #include "rapidjson/filestream.h"
 #include "rapidjson/prettywriter.h"
 
-#include "Math/linalg.h"
 #include "Ceres/compose_cost_functions.h"
+#include "Math/linalg.h"
 
 #include "doosabin.h"
 
