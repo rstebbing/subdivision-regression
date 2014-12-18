@@ -2,10 +2,12 @@
 
 // Includes
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <streambuf>
 #include <utility>
 
 #include "ceres/ceres.h"
@@ -14,6 +16,10 @@
 
 #include <Eigen/Dense>
 
+#include "rapidjson/document.h"
+#include "rapidjson/filestream.h"
+#include "rapidjson/prettywriter.h"
+
 #include "Math/linalg.h"
 #include "Ceres/compose_cost_functions.h"
 
@@ -21,8 +27,6 @@
 
 #include "ceres_surface.h"
 #include "surface.h"
-
-#include "doosabin_regression.pb.h"
 
 // DooSabinSurface
 class DooSabinSurface : public Surface {
@@ -119,6 +123,30 @@ class PairwiseErrorFunctor {
   const double sqrt_w_;
 };
 
+// ReadFileIntoDocument
+bool ReadFileIntoDocument(const std::string& input_path,
+                          rapidjson::Document* document) {
+  std::ifstream input(input_path, std::ios::binary);
+  if (!input) {
+    LOG(ERROR) << "File \"" << input_path << "\" not found.";
+    return false;
+  }
+
+  std::string input_string;
+  input.seekg(0, std::ios::end);
+  input_string.reserve(input.tellg());
+  input.seekg(0, std::ios::beg);
+
+  input_string.assign((std::istreambuf_iterator<char>(input)),
+                      std::istreambuf_iterator<char>());
+
+  if (document->Parse<0>(input_string.c_str()).HasParseError()) {
+    LOG(ERROR) << "Failed to parse input.";
+    return false;
+  }
+  return true;
+}
+
 // LoadProblemFromFile
 bool LoadProblemFromFile(const std::string& input_path,
                          Eigen::MatrixXd* Y,
@@ -126,39 +154,41 @@ bool LoadProblemFromFile(const std::string& input_path,
                          Eigen::MatrixXd* X,
                          Eigen::VectorXi* p,
                          Eigen::MatrixXd* U) {
-  doosabin_regression::Problem problem;
-  {
-    std::fstream input(input_path, std::ios::in | std::ios::binary);
-    if (!input) {
-      LOG(ERROR) << "File \"" << input_path << "\" not found.";
-      return false;
-    } else if (!problem.ParseFromIstream(&input)) {
-      LOG(ERROR) << "Failed to parse input problem.";
-      return false;
-    }
+  rapidjson::Document document;
+  if (!ReadFileIntoDocument(input_path, &document)) {
+    return false;
   }
 
-  #define LOAD_MATRIX(SRC, DST, DIM) { \
-    auto& _SRC = problem.SRC(); \
-    CHECK_EQ(_SRC.size() % DIM, 0); \
-    DST->resize(DIM, _SRC.size() / DIM); \
-    std::copy(_SRC.data(), _SRC.data() + _SRC.size(), DST->data()); \
+  #define LOAD_MATRIXD(SRC, DST, DIM) { \
+    CHECK(document.HasMember(#SRC)); \
+    auto& v = document[#SRC]; \
+    CHECK(v.IsArray()); \
+    DST->resize(DIM, v.Size() / DIM); \
+    for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
+      CHECK(v[i].IsDouble()); \
+      (*DST)(i % DIM, i / DIM) = v[i].GetDouble(); \
+    } \
   }
 
-  #define LOAD_VECTOR(SRC, DST) { \
-    auto& _SRC = problem.SRC(); \
-    DST->resize(_SRC.size()); \
-    std::copy(_SRC.data(), _SRC.data() + _SRC.size(), DST->data()); \
+  #define LOAD_VECTORI(SRC, DST) { \
+    CHECK(document.HasMember(#SRC)); \
+    auto& v = document[#SRC]; \
+    CHECK(v.IsArray()); \
+    DST->resize(v.Size()); \
+    for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
+      CHECK(v[i].IsInt()); \
+      (*DST)[i] = v[i].GetInt(); \
+    } \
   }
 
-  LOAD_MATRIX(y_3, Y, 3);
-  LOAD_VECTOR(t, raw_face_array);
-  LOAD_MATRIX(x_3, X, 3);
-  LOAD_VECTOR(p, p);
-  LOAD_MATRIX(u_2, U, 2);
+  LOAD_MATRIXD(Y, Y, 3);
+  LOAD_VECTORI(raw_face_array, raw_face_array);
+  LOAD_MATRIXD(X, X, 3);
+  LOAD_VECTORI(p, p);
+  LOAD_MATRIXD(U, U, 2);
 
-  #undef LOAD_MATRIX
-  #undef LOAD_VECTOR
+  #undef LOAD_MATRIXD
+  #undef LOAD_VECTORI
 
   return true;
 }
@@ -169,34 +199,49 @@ bool UpdateProblemToFile(const std::string& input_path,
                          const Eigen::MatrixXd& X,
                          const Eigen::VectorXi& p,
                          const Eigen::MatrixXd& U) {
-  doosabin_regression::Problem problem;
-  {
-    std::fstream input(input_path, std::ios::in | std::ios::binary);
-    if (!input) {
-      LOG(ERROR) << "File \"" << input_path << "\" not found.";
-      return false;
-    } else if (!problem.ParseFromIstream(&input)) {
-      LOG(ERROR) << "Failed to parse input problem.";
-      return false;
-    }
+
+  rapidjson::Document document;
+  if (!ReadFileIntoDocument(input_path, &document)) {
+    return false;
   }
 
-  std::copy(X.data(), X.data() + X.rows() * X.cols(),
-            problem.mutable_x_3()->begin());
-  std::copy(p.data(), p.data() + p.size(),
-            problem.mutable_p()->begin());
-  std::copy(U.data(), U.data() + U.rows() * U.cols(),
-            problem.mutable_u_2()->begin());
-
-  {
-    std::fstream output(output_path, std::ios::out |
-                                     std::ios::trunc |
-                                     std::ios::binary);
-    if (!problem.SerializeToOstream(&output)) {
-      LOG(ERROR) << "Failed to write to \"" << output_path << "\"";
-      return false;
-    }
+  #define SAVE_MATRIXD(SRC, DST) { \
+    CHECK(document.HasMember(#DST)); \
+    auto& v = document[#DST]; \
+    CHECK(v.IsArray()); \
+    CHECK_EQ(v.Size(), SRC.rows() * SRC.cols()); \
+    for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
+      CHECK(v[i].IsDouble()); \
+      v[i] = SRC(i % SRC.rows(), i / SRC.rows()); \
+    } \
   }
+
+  #define SAVE_VECTORI(SRC, DST) { \
+    CHECK(document.HasMember(#DST)); \
+    auto& v = document[#DST]; \
+    CHECK(v.IsArray()); \
+    CHECK_EQ(v.Size(), SRC.size()); \
+    for (rapidjson::SizeType i = 0; i < v.Size(); ++i) { \
+      CHECK(v[i].IsInt()); \
+      v[i] = SRC[i]; \
+    } \
+  }
+
+  SAVE_MATRIXD(X, X);
+  SAVE_VECTORI(p, p);
+  SAVE_MATRIXD(U, U);
+
+  // Use `fopen` instead of streams for `rapidjson::FileStream`.
+  FILE* output_handle = fopen(output_path.c_str(), "wb");
+  if (output_handle == nullptr) {
+    LOG(ERROR) << "Unable to open \"" << output_path << "\"";
+  }
+
+  rapidjson::FileStream output(output_handle);
+  rapidjson::PrettyWriter<rapidjson::FileStream> writer(output);
+  document.Accept(writer);
+
+  fclose(output_handle);
 
   return true;
 }
@@ -222,8 +267,6 @@ DEFINE_int32(num_linear_solver_threads, 1,
   "Number of threads to use for the linear solver.");
 
 int main(int argc, char** argv) {
- GOOGLE_PROTOBUF_VERIFY_VERSION;
-
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
