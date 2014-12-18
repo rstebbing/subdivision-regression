@@ -7,7 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <streambuf>
+#include <sstream>
 #include <utility>
 
 #include "ceres/ceres.h"
@@ -132,18 +132,13 @@ bool ReadFileIntoDocument(const std::string& input_path,
     return false;
   }
 
-  std::string input_string;
-  input.seekg(0, std::ios::end);
-  input_string.reserve(input.tellg());
-  input.seekg(0, std::ios::beg);
-
-  input_string.assign((std::istreambuf_iterator<char>(input)),
-                      std::istreambuf_iterator<char>());
-
-  if (document->Parse<0>(input_string.c_str()).HasParseError()) {
+  std::stringstream input_ss;
+  input_ss << input.rdbuf();
+  if (document->Parse<0>(input_ss.str().c_str()).HasParseError()) {
     LOG(ERROR) << "Failed to parse input.";
     return false;
   }
+
   return true;
 }
 
