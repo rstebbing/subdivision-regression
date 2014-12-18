@@ -3,6 +3,7 @@
 # Imports
 import argparse
 import numpy as np
+import json
 
 from sklearn.neighbors import NearestNeighbors
 
@@ -68,16 +69,19 @@ def main():
     p, U = pd[i], Ud[i]
 
     # Output.
-    s = Problem()
-    pb.append_array(s, 'y', Y)
-    pb.append_array(s, 't', sequence_to_raw_face_array(T))
-    pb.append_array(s, 'x', X)
-    pb.append_array(s, 'p', p)
-    pb.append_array(s, 'u', U)
+    z = {}
+    def z_setitem(k, A):
+        z[k] = np.asarray(A).ravel().tolist()
+
+    z_setitem('Y', Y)
+    z_setitem('raw_face_array', sequence_to_raw_face_array(T))
+    z_setitem('X', X)
+    z_setitem('p', p)
+    z_setitem('U', U)
 
     print 'Output:', args.output_path
     with open(args.output_path, 'wb') as fp:
-        fp.write(s.SerializeToString())
+        json.dump(z, fp, indent=4)
 
 if __name__ == '__main__':
     main()
