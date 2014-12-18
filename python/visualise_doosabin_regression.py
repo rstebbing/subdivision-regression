@@ -4,15 +4,12 @@
 import argparse
 import numpy as np
 
-# Requires subdivision/doosabin on `PYTHONPATH`.
-import doosabin
+# Requires `subdivision`.
+from subdivision import doosabin
 
-# Requires common/python on `PYTHONPATH`.
-from face_array import raw_face_array_to_sequence
-import protobuf_ as pb
-import vtk_
-
-from doosabin_regression_pb2 import Problem
+# Requires `rscommon`.
+from rscommon.face_array import raw_face_array_to_sequence
+from rscommon import vtk_
 
 # main
 def main():
@@ -31,7 +28,7 @@ def main():
     p = pb.load_array(s, 'p')
     U = pb.load_array(s, 'u', 2)
 
-    surface = doosabin.Surface(T)
+    surface = doosabin.surface(T)
     pd, Ud, Td = surface.uniform_parameterisation(args.sample_density)
     M = surface.M(pd, Ud, X)
 
