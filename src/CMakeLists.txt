@@ -55,57 +55,13 @@ LIST(APPEND CERES_LIBRARIES ${BLAS_LAPACK_LIBRARIES}
                             ${LIBGFLAGS_LIB}
                             ${LIBGLOG_LIB})
 
-FIND_PACKAGE(Protobuf REQUIRED)
-INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})
-
-# Required by Protobuf.
-INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
-
-# Define PROTOBUF_GENERATE_PYTHON to generate Python Protobuf files
-# in the source tree.
-# This is done so that execution of visualiation Python scripts is
-# straightforward.
-FUNCTION(PROTOBUF_GENERATE_PYTHON MODULES)
-  IF(NOT ARGN)
-    MESSAGE(SEND_ERROR "Error: PROTOBUF_GENERATE_PYTHON() called without any proto files")
-  ENDIF()
-
-  SET(${MODULES})
-
-  FOREACH(FIL ${ARGN})
-    GET_FILENAME_COMPONENT(ABS_FIL ${FIL} ABSOLUTE)
-    GET_FILENAME_COMPONENT(FIL_WE ${FIL} NAME_WE)
-    LIST(APPEND ${MODULES} "${CMAKE_SOURCE_DIR}/${FIL_WE}_pb2.py")
-
-    ADD_CUSTOM_COMMAND(
-      OUTPUT "${CMAKE_SOURCE_DIR}/${FIL_WE}_pb2.py"
-      COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS --python_out ${CMAKE_SOURCE_DIR}/../python --proto_path ${CMAKE_SOURCE_DIR} ${ABS_FIL}
-      DEPENDS ${ABS_FIL}
-      COMMENT "Running Python protocol buffer compiler on ${FIL}"
-      VERBATIM)
-  ENDFOREACH()
-
-  SET(${MODULES} ${${MODULES}} PARENT_SCOPE)
-ENDFUNCTION()
-
-PROTOBUF_GENERATE_CPP(DOOSABIN_REGRESSION_PROTO_SRCS
-                      DOOSABIN_REGRESSION_PROTO_HDRS
-                      doosabin_regression.proto)
-PROTOBUF_GENERATE_PYTHON(DOOSABIN_REGRESSION_PROTO_PYTHON
-                         doosabin_regression.proto)
-
 SET(DOOSABIN_REGRESSION_SRCS
     ceres_surface.cpp
     ceres_surface.h
     doosabin_regression.cpp
     patch_index_encoding.cpp
     patch_index_encoding.h
-    surface.h
-    ${DOOSABIN_REGRESSION_PROTO_SRCS}
-    ${DOOSABIN_REGRESSION_PROTO_HDRS}
-    ${DOOSABIN_REGRESSION_PROTO_PYTHON})
+    surface.h)
 ADD_EXECUTABLE(doosabin_regression ${DOOSABIN_REGRESSION_SRCS})
 TARGET_LINK_LIBRARIES(doosabin_regression
-                      ${CERES_LIBRARIES}
-                      ${PROTOBUF_LIBRARIES})
+                      ${CERES_LIBRARIES})
