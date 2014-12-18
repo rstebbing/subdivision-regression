@@ -3,6 +3,7 @@
 # Imports
 import argparse
 import numpy as np
+import json
 
 # Requires `subdivision`.
 from subdivision import doosabin
@@ -18,15 +19,17 @@ def main():
     parser.add_argument('--sample-density', type=int, default=16)
     args = parser.parse_args()
 
-    s = Problem()
     with open(args.input_path, 'rb') as fp:
-        s.ParseFromString(fp.read())
+        z = json.loads(fp.read())
+    def z_getitem(k, cols=None):
+        a = np.array(z[k])
+        return a.reshape(-1, cols) if cols is not None else a
 
-    Y = pb.load_array(s, 'y', 3)
-    T = raw_face_array_to_sequence(pb.load_array(s, 't'))
-    X = pb.load_array(s, 'x', 3)
-    p = pb.load_array(s, 'p')
-    U = pb.load_array(s, 'u', 2)
+    Y = z_getitem('Y', 3)
+    T = raw_face_array_to_sequence(z_getitem('raw_face_array'))
+    X = z_getitem('X', 3)
+    p = z_getitem('p')
+    U = z_getitem('U', 2)
 
     surface = doosabin.surface(T)
     pd, Ud, Td = surface.uniform_parameterisation(args.sample_density)
