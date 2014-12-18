@@ -16,6 +16,9 @@ from rscommon import vtk_
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_path')
+    parser.add_argument('-d', '--disable', action='append', default=[],
+                        choices={'Y', 'T', 'M', 'U'})
+    parser.add_argument('--opacity', type=float, default=0.6)
     parser.add_argument('--sample-density', type=int, default=16)
     args = parser.parse_args()
 
@@ -36,30 +39,35 @@ def main():
     M = surface.M(pd, Ud, X)
 
     a = {}
-    a['Y'] = vtk_.points(Y, ('SetRadius', 0.025),
-                            ('SetThetaResolution', 16),
-                            ('SetPhiResolution', 16))
+    if 'Y' not in args.disable:
+        a['Y'] = vtk_.points(Y, ('SetRadius', 0.025),
+                                ('SetThetaResolution', 16),
+                                ('SetPhiResolution', 16))
+
     camera = vtk_.vtk.vtkCamera()
-    a['M'] = vtk_.surface(Td, M, camera=camera)
-    a['M'].GetProperty().SetColor(0.216, 0.494, 0.722)
-    a['M'].GetProperty().SetSpecular(1.0)
-    a['M'].GetProperty().SetOpacity(0.6)
+    if 'M' not in args.disable:
+        a['M'] = vtk_.surface(Td, M, camera=camera)
+        a['M'].GetProperty().SetColor(0.216, 0.494, 0.722)
+        a['M'].GetProperty().SetSpecular(1.0)
+        a['M'].GetProperty().SetOpacity(args.opacity)
 
     MU = surface.M(p, U, X)
-    a['MU'] = vtk_.points(MU, ('SetRadius', 0.015),
-                              ('SetThetaResolution', 16),
-                              ('SetPhiResolution', 16))
+    if 'U' not in args.disable:
+        a['MU'] = vtk_.points(MU, ('SetRadius', 0.015),
+                                  ('SetThetaResolution', 16),
+                                  ('SetPhiResolution', 16))
 
-    i = np.arange(p.size)
-    a['U'] = vtk_.tubes(np.c_[i, i + p.size], np.r_['0,2', MU, Y],
-                        ('SetRadius', 0.01),
-                        ('SetNumberOfSides', 16))
+        i = np.arange(p.size)
+        a['U'] = vtk_.tubes(np.c_[i, i + p.size], np.r_['0,2', MU, Y],
+                            ('SetRadius', 0.01),
+                            ('SetNumberOfSides', 16))
 
-    a['T_points'] = vtk_.points(X, ('SetRadius', 0.05),
-                                   ('SetThetaResolution', 16),
-                                   ('SetPhiResolution', 16))
-    a['T_mesh'] = vtk_.mesh(T, X, ('SetRadius', 0.025),
-                                  ('SetNumberOfSides', 16))
+    if 'T' not in args.disable:
+        a['T_points'] = vtk_.points(X, ('SetRadius', 0.05),
+                                       ('SetThetaResolution', 16),
+                                       ('SetPhiResolution', 16))
+        a['T_mesh'] = vtk_.mesh(T, X, ('SetRadius', 0.025),
+                                      ('SetNumberOfSides', 16))
 
     ren, iren = vtk_.renderer(*a.values())
 
