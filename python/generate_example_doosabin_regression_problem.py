@@ -6,14 +6,11 @@ import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
 
-# Requires subdivision/doosabin on `PYTHONPATH`.
-import doosabin
+# Requires `subdivision`.
+from subdivision import doosabin
 
-# Requires common/python on `PYTHONPATH`.
-from face_array import sequence_to_raw_face_array
-import protobuf_ as pb
-
-from doosabin_regression_pb2 import Problem
+# Requires `rscommon`.
+from rscommon.face_array import sequence_to_raw_face_array
 
 # main
 def main():
@@ -61,7 +58,7 @@ def main():
         T, X = doosabin.subdivide(T, X)
 
     # Initialise preimages.
-    surface = doosabin.Surface(T)
+    surface = doosabin.surface(T)
     pd, Ud, Td = surface.uniform_parameterisation(
         args.initialisation_sample_density)
     M = surface.M(pd, Ud, X)
