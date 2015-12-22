@@ -29,10 +29,14 @@ def main():
     parser.add_argument('--num-subdivisions', type=int, default=0)
     parser.add_argument('--initialisation-sample-density', type=int,
                         default=16)
+    parser.add_argument('--seed', type=int)
     args = parser.parse_args()
 
     # Generate matrix `Y` of points uniformly sampled on a sphere then
     # displaced radially with zero-mean Gaussian noise.
+    if args.seed is not None:
+        np.random.seed(args.seed)
+
     Y = np.random.randn(args.num_data_points * 3).reshape(-1, 3)
     n = np.linalg.norm(Y, axis=1)
     n[n <= 0.0] = 1.0
