@@ -51,7 +51,7 @@ bool SurfaceCostFunction::Evaluate(const double* const* x,
     }
   }
 
-  // Construct `Jp`; the array of poitns to the Jacobians.
+  // Construct `Jp`; the array of pointers to the Jacobians.
   ceres::internal::FixedArray<double*> Jp(1 + num_patch_vertices);
   Jp[0] = J[0];
   for (int i = 0; i < num_patch_vertices; ++i) {
