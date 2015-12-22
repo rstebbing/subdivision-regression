@@ -20,7 +20,7 @@
 #include "rapidjson/filewritestream.h"
 #include "rapidjson/prettywriter.h"
 
-#include "Ceres/compose_cost_functions.h"
+#include "Ceres/composed_cost_function.h"
 #include "Math/linalg.h"
 
 #include "doosabin.h"
@@ -322,13 +322,13 @@ int main(int argc, char** argv) {
   for (Index i = 0; i < num_data_points; ++i) {
     parameter_blocks[0] = U.data() + 2 * i;
 
-    auto position_error = new ceres_utility::GeneralCostFunctionComposition(
+    auto position_error = new ceres::ComposedCostFunction(
       new ceres::AutoDiffCostFunction<PositionErrorFunctor, 3, 3>(
         new PositionErrorFunctor(Y.col(i), 1.0 / sqrt(num_data_points))));
     position_error->AddInputCostFunction(surface_position.get(),
                                          parameter_blocks,
-                                         false);
-    position_error->Finalise();
+                                         ceres::DO_NOT_TAKE_OWNERSHIP);
+    position_error->Finalize();
 
     problem.AddResidualBlock(position_error, nullptr, parameter_blocks);
   }

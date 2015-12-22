@@ -22,7 +22,8 @@ EXPECT_FILES(RAPID_JSON_INCLUDE_DIR rapidjson/document.h
 INCLUDE_DIRECTORIES(${RAPID_JSON_INCLUDE_DIR})
 
 SET(COMMON_CPP_INCLUDE_DIR "" CACHE PATH "")
-EXPECT_FILES(COMMON_CPP_INCLUDE_DIR Ceres/compose_cost_functions.h
+EXPECT_FILES(COMMON_CPP_INCLUDE_DIR Ceres/composed_cost_function.h
+                                    Ceres/composed_cost_function.cpp
                                     Math/linalg.h)
 INCLUDE_DIRECTORIES(${COMMON_CPP_INCLUDE_DIR})
 
@@ -49,6 +50,7 @@ INCLUDE_DIRECTORIES(${CERES_INCLUDE_DIRS}
                     ${GFLAGS_INCLUDE_DIR})
 
 SET(DOOSABIN_REGRESSION_SRCS
+    ${COMMON_CPP_INCLUDE_DIR}/Ceres/composed_cost_function.cpp
     ceres_surface.cpp
     ceres_surface.h
     doosabin_regression.cpp
