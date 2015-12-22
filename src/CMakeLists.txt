@@ -1,3 +1,10 @@
+##########################################
+# File: CMakeLists.txt                   #
+# Copyright Richard Stebbing 2015.       #
+# Distributed under the MIT License.     #
+# (See accompany file LICENSE or copy at #
+#  http://opensource.org/licenses/MIT)   #
+##########################################
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
 PROJECT(SUBDIVISION_REGRESSION)
 

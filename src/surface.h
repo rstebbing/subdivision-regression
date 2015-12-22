@@ -1,4 +1,10 @@
-// surface.h
+////////////////////////////////////////////
+// File: surface.h                        //
+// Copyright Richard Stebbing 2015.       //
+// Distributed under the MIT License.     //
+// (See accompany file LICENSE or copy at //
+//  http://opensource.org/licenses/MIT)   //
+////////////////////////////////////////////
 #ifndef SURFACE_H
 #define SURFACE_H
 

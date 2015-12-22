@@ -1,4 +1,10 @@
-// ceres_surface.cpp
+////////////////////////////////////////////
+// File: ceres_surface.cpp                //
+// Copyright Richard Stebbing 2015.       //
+// Distributed under the MIT License.     //
+// (See accompany file LICENSE or copy at //
+//  http://opensource.org/licenses/MIT)   //
+////////////////////////////////////////////
 
 // Includes
 #include "ceres_surface.h"

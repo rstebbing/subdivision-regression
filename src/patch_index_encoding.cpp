@@ -1,4 +1,10 @@
-// patch_index_encoding.cpp
+////////////////////////////////////////////
+// File: patch_index_encoding.cpp         //
+// Copyright Richard Stebbing 2015.       //
+// Distributed under the MIT License.     //
+// (See accompany file LICENSE or copy at //
+//  http://opensource.org/licenses/MIT)   //
+////////////////////////////////////////////
 
 // Try not to vomit ...
 

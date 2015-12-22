@@ -1,4 +1,10 @@
-# generate_example_doosabin_regression_problem.py
+#########################################################
+# File: generate_example_doosabin_regression_problem.py #
+# Copyright Richard Stebbing 2015.                      #
+# Distributed under the MIT License.                    #
+# (See accompany file LICENSE or copy at                #
+#  http://opensource.org/licenses/MIT)                  #
+#########################################################
 
 # Imports
 import argparse
