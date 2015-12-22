@@ -17,7 +17,7 @@ ENDMACRO(EXPECT_FILES)
 
 SET(RAPID_JSON_INCLUDE_DIR "" CACHE PATH "")
 EXPECT_FILES(RAPID_JSON_INCLUDE_DIR rapidjson/document.h
-                                    rapidjson/filestream.h
+                                    rapidjson/filewritestream.h
                                     rapidjson/prettywriter.h)
 INCLUDE_DIRECTORIES(${RAPID_JSON_INCLUDE_DIR})
 

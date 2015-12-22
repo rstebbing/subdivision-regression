@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 
 #include "rapidjson/document.h"
-#include "rapidjson/filestream.h"
+#include "rapidjson/filewritestream.h"
 #include "rapidjson/prettywriter.h"
 
 #include "Ceres/compose_cost_functions.h"
@@ -227,14 +227,17 @@ bool UpdateProblemToFile(const std::string& input_path,
   #undef SAVE_MATRIXD
   #undef SAVE_VECTORI
 
-  // Use `fopen` instead of streams for `rapidjson::FileStream`.
+  // Use `fopen` instead of streams for `rapidjson::FileWriteStream`.
   FILE* output_handle = fopen(output_path.c_str(), "wb");
   if (output_handle == nullptr) {
     LOG(ERROR) << "Unable to open \"" << output_path << "\"";
   }
 
-  rapidjson::FileStream output(output_handle);
-  rapidjson::PrettyWriter<rapidjson::FileStream> writer(output);
+  char write_buffer[512];
+  rapidjson::FileWriteStream output(output_handle,
+                                    write_buffer,
+                                    sizeof(write_buffer));
+  rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(output);
   document.Accept(writer);
 
   fclose(output_handle);
