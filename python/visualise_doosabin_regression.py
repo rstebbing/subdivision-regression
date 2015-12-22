@@ -26,6 +26,8 @@ def main():
                         choices={'Y', 'T', 'M', 'U'})
     parser.add_argument('--opacity', type=float, default=0.6)
     parser.add_argument('--sample-density', type=int, default=16)
+    parser.add_argument('--no-reset-camera', dest='reset_camera',
+                        default=True, action='store_false')
     args = parser.parse_args()
 
     with open(args.input_path, 'rb') as fp:
@@ -78,7 +80,14 @@ def main():
     ren, iren = vtk_.renderer(*a.values())
 
     ren.SetActiveCamera(camera)
-    ren.ResetCamera()
+
+    if not args.reset_camera:
+        camera.SetFocalPoint(0, 0, 0)
+        camera.SetPosition(-2.6, 2.0, 3.4)
+        camera.SetViewUp(0.3, 0.9, -0.3)
+        camera.SetParallelScale(1.8)
+    else:
+        ren.ResetCamera()
 
     iren.Initialize()
     iren.Start()
